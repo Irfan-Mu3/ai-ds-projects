@@ -1,0 +1,12 @@
+More graphs:
+1) Most likely hour for crime
+2) Most likely day of the week for crime
+3) Neighbourhood crime demographic
+    - likelihood of crime in each neighbourhood
+4) Prediction of most likely serious crime to take place in the next hour and where
+5) Relate crime data to domain knowledge - poverty data, temperature.
+- Get florida temperature data and see cross-correlation for year
+- Get poverty data? and see correlation with area?
+- Have to first define poverty
+
+Get corollation data for temperature

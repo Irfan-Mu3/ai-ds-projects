@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="PYTHON_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <excludeFolder url="file://$MODULE_DIR$/venvpypy" />
+      <excludeFolder url="file://$MODULE_DIR$/regression analysis/venvpypy" />
+      <excludeFolder url="file://$MODULE_DIR$/time series analysis/venvpypy" />
+      <excludeFolder url="file://$MODULE_DIR$/classification analysis/fire data" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>
