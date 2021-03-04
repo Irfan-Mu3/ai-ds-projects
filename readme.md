@@ -12,9 +12,9 @@ _python_ ecosystem.
 Here are the projects I have worked on:
 1) House Price Dataset (Regression)
 2) San Francisco's Incident Report Dataset (Forecasting)
+3) Adult Salary Dataset (Classification)
 
-The projects are currently found in the **regression analysis folder**, 
-or the **time series analysis folder**. 
+The projects are currently found in the folders: **regression analysis folder**, **time series analysis folder**. **classification folder** respectively.
 
 In each project, there should be two iPython notebooks: 1) Exploratory data analysis (EDA), 2)
 Confirmatory data analysis (CDA), which are both self-explanatory. 
