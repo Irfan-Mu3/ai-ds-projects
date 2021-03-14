@@ -1,6 +1,6 @@
-# Irfan's Science Portfolio 51
+# Irfan's Science Portfolio
 
-## Hello there!
+## Welcome
 
 Here lies projects I have undertaken to learn and grow in data science. 
 These projects mostly showcase how I would handle solving problems for particular datasets, 
@@ -9,12 +9,13 @@ I hope to accumulate here a display of techniques in solving regression, classif
 clustering and forecasting problems. Additionally, of data-wrangling, and database-querying, within the
 _python_ ecosystem.
 
-Here are the projects I have worked on:
+Here are some of the projects I have worked on:
 1) House Price Dataset (Regression)
 2) San Francisco's Incident Report Dataset (Forecasting)
+3) Adult Salary Dataset (Classification)
 
-The projects are currently found in the **regression analysis folder**, 
-or the **time series analysis folder**. 
+The projects are currently found in the **regression_analysis**, **time_series_analysis** or
+**classification_analysis** folder. 
 
 In each project, there should be two iPython notebooks: 1) Exploratory data analysis (EDA), 2)
 Confirmatory data analysis (CDA), which are both self-explanatory. 

@@ -5,37 +5,36 @@ from scipy.optimize import least_squares
 import statsmodels.tsa.stattools as stt
 from sympy import poly
 from sympy.abc import a, b, B, c, d
-import time_series_funcs.sarima_plus_plus as tsf
+
 
 # todo tommorrow: solve problem, forecast sol, plot autocorr, test if MA(1)
 # todo: after finding weekly correlate, look at averages of days of the week over the years
 # todo: study particular crimes
 
-
-def compute_rks(xs):
+def compute_rks(ts):
     # computes the autocorrelation
-    N = len(xs)
+    N = len(ts)
     n = N - 1
     cnorm = (1 / N)
 
     c_ks = np.empty(int(N / 2))
 
     for k in range(int(N / 2)):
-        c_ks[k] = cnorm * (xs[:n - (2 * k)] @ xs[k:n - k].T)
+        c_ks[k] = cnorm * (ts[:n - (2 * k)] @ ts[k:n - k].T)
 
     return c_ks / c_ks[0]
 
 
-def compute_rks2(xs, mean):
+def compute_rks2(ts, mean):
     # alternative algorithm to computes autocorrelation
-    N = len(xs)
-    xs = np.append(xs, np.ones(N) * (-mean))
+    N = len(ts)
+    ts = np.append(ts, np.ones(N) * (-mean))
     c_ks = np.empty(int(N))
     for k in range(N):
         c_ks[k] = (1 / (N - k))
         temp = 0
         for t in range(0, N - k):
-            temp += xs[t] * xs[t + k]
+            temp += ts[t] * ts[t + k]
         c_ks[k] *= temp
 
     return c_ks / c_ks[0]
@@ -63,6 +62,10 @@ def compute_corr_95(autocorr):
 
 def compute_safe_conf_95(autocorr):
     # computes 95% conf. interval of autocorrelations. Can be used for ts, or its residuals.
+    return np.asarray([2 / np.sqrt(len(autocorr))] * len(autocorr))
+
+
+def create_series_plot(ts: np.ndarray, pacf_max, corr_max=None, ts_is_residuals=False, y_label=None, ts_label=None):
     # plots the ts, the autocorr, and the partial autocorr together.
 
     # ts: time-series
@@ -71,10 +74,7 @@ def compute_safe_conf_95(autocorr):
     # ts_is_residuals: Is the time-series the residuals of an original series? (This affects confidence intervals)
     # y_label: label for the y_axis of the time series
     # ts_label: label for the time series itself
-    return np.asarray([2 / np.sqrt(len(autocorr))] * len(autocorr))
 
-
-def create_series_plot(ts: np.ndarray, pacf_max, corr_max=None, ts_is_residuals=False, y_label=None, ts_label=None):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 
     if ts_label:
@@ -304,4 +304,3 @@ if __name__ == '__main__':
     # Note that differencing by year and not having a param for the year lag is fine, since
     # having a non-stationary series is not a problem. However, params-wise, we need to difference the series.
     # Thus for model 1: we have a random walk, at the level of years, but a SMA process, for week, and MA for consec.
-

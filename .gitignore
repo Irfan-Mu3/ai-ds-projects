@@ -1,4 +1,4 @@
 # Project exclude paths
 /venvpypy/
-/regression analysis/venvpypy/
-/time series analysis/venvpypy/
+/regression_analysis/venvpypy/
+/time_series_analysis/venvpypy/
