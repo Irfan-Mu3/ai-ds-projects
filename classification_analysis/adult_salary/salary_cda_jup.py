@@ -10,7 +10,11 @@ from sklearn.experimental import enable_hist_gradient_boosting
 from sklearn.ensemble import RandomForestClassifier, HistGradientBoostingClassifier
 from sklearn.metrics import f1_score
 
-from classification_plots import create_dummy_matrix, create_classification_plots, \
+# for jupyter:
+# import sys
+# sys.path.append('..')
+
+from classification_funcs.classification_plots import create_dummy_matrix, create_classification_plots, \
     create_quantitative_mekko_charts, create_qualitative_mekko_charts
 
 from salary_eda_jup import data_preparation

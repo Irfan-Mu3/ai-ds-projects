@@ -4,7 +4,7 @@ import sklearn.preprocessing as skp
 import pandas as pd
 from matplotlib.patches import Patch
 from statsmodels.graphics import mosaicplot
-from costats import bipolarity
+from classification_funcs.costats import bipolarity
 
 
 # warn: the plots earlier only worked for 2+ variables

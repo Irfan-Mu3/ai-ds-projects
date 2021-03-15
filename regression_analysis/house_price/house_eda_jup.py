@@ -5,7 +5,8 @@ import pandas as pd
 import seaborn as sns
 from sklearn import tree
 from sklearn.decomposition import PCA
-from regression_plots import create_regression_plots, create_partial_plots, \
+
+from regression_funcs.regression_plots import create_regression_plots, create_partial_plots, \
     create_partial_residual_plots
 
 
@@ -62,7 +63,6 @@ if __name__ == '__main__':
     corr_graph_vals = R_squared[R_squared > 0.3].fillna(0)
     corr_graph_vals = corr_graph_vals.round(3)
 
-
     # remove diagonal entries, and remove variables with no strong correlation
     cols = corr_graph_vals.columns
     for c in cols: corr_graph_vals[c][c] = 0
@@ -72,9 +72,9 @@ if __name__ == '__main__':
     corr_graph = nx.from_pandas_adjacency(corr_graph_vals)
 
     pos = nx.spring_layout(corr_graph)
-    nx.draw_networkx(corr_graph,pos)
+    nx.draw_networkx(corr_graph, pos)
     weights = nx.get_edge_attributes(corr_graph, 'weight')
-    nx.draw_networkx_edge_labels(corr_graph,pos,edge_labels=weights)
+    nx.draw_networkx_edge_labels(corr_graph, pos, edge_labels=weights)
     plt.show()
 
     # print correlated variables to SalePrice
@@ -162,10 +162,10 @@ if __name__ == '__main__':
     # 1) [Comp1 < -100,:], 2) [ -100 < Comp1 < 75, Comp2 > 12], 3) [Rest].
     clf = tree.DecisionTreeClassifier()
     clust1_idx = np.flatnonzero(trans_Xs[:, 0] < -100)
-    clust2_idx = np.flatnonzero(((trans_Xs[:, 0] < 75) & (-100 < trans_Xs[:,0])) & (trans_Xs[:, 1] > 12))
+    clust2_idx = np.flatnonzero(((trans_Xs[:, 0] < 75) & (-100 < trans_Xs[:, 0])) & (trans_Xs[:, 1] > 12))
 
     num_samples = trans_Xs.shape[0]
-    clust3_idx = np.setdiff1d(np.arange(num_samples),np.append(clust1_idx,clust2_idx))
+    clust3_idx = np.setdiff1d(np.arange(num_samples), np.append(clust1_idx, clust2_idx))
 
     plt.scatter(trans_Xs[clust1_idx, 0], trans_Xs[clust1_idx, 1], label='Clust 1')
     plt.scatter(trans_Xs[clust2_idx, 0], trans_Xs[clust2_idx, 1], label='Clust 2')
@@ -174,14 +174,15 @@ if __name__ == '__main__':
     plt.show()
 
     # Create a new ordinal variable for the clusters [0,1,2].
-    Y_class = np.empty(num_samples,dtype=int)
+    Y_class = np.empty(num_samples, dtype=int)
     Y_class[clust1_idx] = 0
     Y_class[clust2_idx] = 1
     Y_class[clust3_idx] = 2
 
     Xs_comb = old_df[comb_vars].drop(columns='SalePrice')
-    clf = clf.fit(Xs_comb.to_numpy(),Y_class)
-    tree.plot_tree(clf,feature_names=Xs_comb.columns,class_names=['Left','Top','Rest'],filled=True,proportion=False)
+    clf = clf.fit(Xs_comb.to_numpy(), Y_class)
+    tree.plot_tree(clf, feature_names=Xs_comb.columns, class_names=['Left', 'Top', 'Rest'], filled=True,
+                   proportion=False)
     plt.show()
 
     # We find that the clusters can be identified well via two variables: GarageCars or TotalBsmtSF
@@ -189,12 +190,12 @@ if __name__ == '__main__':
     # 2) Let us also see if the outliers have a specific pattern relative to other points
     # We already have the indices of the outlier, let us create a new dichotomous variable classifying
     # between outliers and non-outliers [0,1]
-    Y_out = np.zeros(num_samples,dtype=int)
+    Y_out = np.zeros(num_samples, dtype=int)
     Y_out[outlier_idxs] = 1
 
     # Xs_comb = old_df[comb_vars] # keep SalePrice in
-    clf = clf.fit(Xs_comb.to_numpy(),Y_out)
-    tree.plot_tree(clf,feature_names=Xs_comb.columns,class_names=['Reg.','Outlier'],filled=True,proportion=False)
+    clf = clf.fit(Xs_comb.to_numpy(), Y_out)
+    tree.plot_tree(clf, feature_names=Xs_comb.columns, class_names=['Reg.', 'Outlier'], filled=True, proportion=False)
     plt.show()
     # Looking at the graph, there appears to be no simple explanation
 

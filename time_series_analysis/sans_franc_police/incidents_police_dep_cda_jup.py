@@ -1,19 +1,18 @@
-import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import least_squares
+import pandas as pd
 import statsmodels.tsa.stattools as stt
-from sympy import poly
-from sympy.abc import a, b, B, c, d
-import time_series_analysis.time_series_funcs.sarima_plus_plus as spp
-from incidents_police_dep_eda_jup import compute_rks3, compute_safe_conf_95
 from scipy.stats import gaussian_kde, norm
 from sklearn.neighbors import KernelDensity
+from sympy import poly
+from sympy.abc import a, b, B, c, d
+
+from incidents_police_dep_eda_jup import compute_rks3, compute_safe_conf_95
+import time_series_funcs.sarima_plus_plus as spp
 
 
 # todo: after finding weekly correlate, look at averages of days of the week over the years
 # todo: study particular crimes
-
 
 def create_residuals_subplots(ts, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100, ):
     # plots the residuals, the first-lag autocorr, and the first-lag partial autocorr.
@@ -123,10 +122,16 @@ if __name__ == '__main__':
 
     # substep: Model 1  (Differencing: sec,weeky & yearly) : SMA_7(1)xMA(1)
 
+    # AR backshift polynomial
     p_poly = None
+
+    # MA backshift polynomial
     q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
+
+    # Differencing polynomial
     d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B)
 
+    # parameters used in the polynomials above
     p_symbols = []
     q_symbols = [a, b]
 
@@ -136,6 +141,7 @@ if __name__ == '__main__':
     p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
     q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
 
+    # Plot time-series, autocorrelation, and partial autocorrelation (pacf).
     create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
     plt.show()
 
@@ -253,13 +259,12 @@ if __name__ == '__main__':
     create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
     plt.show()
     #
-    # # Comments: The process is not MA(1), since the autocorr. has spikes at lags 7,30,365.
-    # # Let us remove the yearly differencing and see what happens.
+    # Comments: The process is not MA(1), since the autocorr. has spikes at lags 7,30,365.
+    #  Let us remove the yearly differencing and see what happens.
     #
     # ########################################################################################
-    #
-    # # substep: Model 2 - yr diff, SMA_30(1)xSMA_7(1)xMA(1)
-    #
+    # substep: Model 2 - yr diff, SMA_30(1)xSMA_7(1)xMA(1)
+
     ts_cut_month_week = ts_cut_month[:-week] - ts_cut_month[week:]
     ts_cut_month_week_sec = ts_cut_month_week[:-1] - ts_cut_month_week[1:]
 
@@ -286,7 +291,7 @@ if __name__ == '__main__':
     #
     # #############################################################################
     #
-    # # substep: Model 2 + yearly param,   SMA_365(1)xSMA_30(1)xSMA_7(1)xMA(1)
+    # substep: Model 2 + yearly param,   SMA_365(1)xSMA_30(1)xSMA_7(1)xMA(1)
     #
     p_poly = None
     q_poly = poly(1 - (a * B) - (b * B ** 7) - (c * B ** 30) - (d * B ** 365), B)
@@ -370,24 +375,24 @@ if __name__ == '__main__':
     #################################################################################################################
 
     # substep: study distribution of error: a_t
-    xs = np.linspace(min(a_t), max(a_t), 2000)
-    plt.plot(xs, norm(np.mean(a_t), np.std(a_t)).pdf(xs), label='norm dist')
-    error_dist = gaussian_kde(a_t)
-    plt.plot(xs, error_dist(xs), label='error dist ')
-    log_dens = KernelDensity(kernel='gaussian', bandwidth=12).fit(a_t.reshape(-1, 1)).score_samples(xs.reshape(-1, 1))
-    plt.plot(xs, np.exp(log_dens), label='sklearn error dist (gauss kern.)')
-
-    a_t_cut = a_t[(a_t < 350)]
-    xs = np.linspace(min(a_t_cut), max(a_t_cut), 2000)
-    error_dist = gaussian_kde(a_t_cut)
-    plt.plot(xs, error_dist(xs), label='error dist trimmed')
-    plt.plot(xs, norm(np.mean(a_t_cut), np.std(a_t_cut)).pdf(xs), label='error dist a_t trimmed')
-    log_dens = KernelDensity(kernel='gaussian', bandwidth=12).fit(a_t_cut.reshape(-1, 1)).score_samples(
-        xs.reshape(-1, 1))
-    plt.plot(xs, np.exp(log_dens), label='sklearn error dist (gauss kern.) trimmed')
-    print("mean,var,std:", np.mean(a_t_cut), np.var(a_t_cut), np.std(a_t_cut))
-    plt.legend()
-    plt.show()
+    # xs = np.linspace(min(a_t), max(a_t), 2000)
+    # plt.plot(xs, norm(np.mean(a_t), np.std(a_t)).pdf(xs), label='norm dist')
+    # error_dist = gaussian_kde(a_t)
+    # plt.plot(xs, error_dist(xs), label='error dist ')
+    # log_dens = KernelDensity(kernel='gaussian', bandwidth=12).fit(a_t.reshape(-1, 1)).score_samples(xs.reshape(-1, 1))
+    # plt.plot(xs, np.exp(log_dens), label='sklearn error dist (gauss kern.)')
+    #
+    # a_t_cut = a_t[(a_t < 350)]
+    # xs = np.linspace(min(a_t_cut), max(a_t_cut), 2000)
+    # error_dist = gaussian_kde(a_t_cut)
+    # plt.plot(xs, error_dist(xs), label='error dist trimmed')
+    # plt.plot(xs, norm(np.mean(a_t_cut), np.std(a_t_cut)).pdf(xs), label='error dist a_t trimmed')
+    # log_dens = KernelDensity(kernel='gaussian', bandwidth=12).fit(a_t_cut.reshape(-1, 1)).score_samples(
+    #     xs.reshape(-1, 1))
+    # plt.plot(xs, np.exp(log_dens), label='sklearn error dist (gauss kern.) trimmed')
+    # print("mean,var,std:", np.mean(a_t_cut), np.var(a_t_cut), np.std(a_t_cut))
+    # plt.legend()
+    # plt.show()
 
     #  Comments: If we trim the distribution, it should be more narrow. If not there appears to be slight bimodality.
 
@@ -395,22 +400,25 @@ if __name__ == '__main__':
 
     y_multiforecasts, y_stds, y_means = spp.batch_forecastSeasonalARIMA(ts_cut.astype(float), a_t, h_max, None, d_poly,
                                                                         est_q_poly, num_samples=500)
+
+    fig, ax = plt.subplots(1)
+
     for i in range(y_multiforecasts.shape[0]):
-        plt.plot(y_multiforecasts[i], linewidth=0.5, linestyle='--')
+        ax.plot(y_multiforecasts[i], linewidth=0.5, linestyle='--')
 
     yt_forecast_initial_val = ts_cut[-1]
-    plt.plot(yt_forecast_initial_val + y_stds, label='upper std, h = ' + str(h_max), linewidth=2, color='green')
-    plt.plot(yt_forecast_initial_val - y_stds, label='lower std, h = ' + str(h_max), linewidth=2, color='green')
+    ax.plot(yt_forecast_initial_val + y_stds, label='upper std, h = ' + str(h_max), linewidth=2, color='green')
+    ax.plot(yt_forecast_initial_val - y_stds, label='lower std, h = ' + str(h_max), linewidth=2, color='green')
 
-    plt.plot(yt_forecast_initial_val + 2 * y_stds, label='upper 2 * std, h = ' + str(h_max), linewidth=2,
-             color='orange')
-    plt.plot(yt_forecast_initial_val - 2 * y_stds, label='lower 2 * std, h = ' + str(h_max), linewidth=2,
-             color='orange')
+    ax.plot(yt_forecast_initial_val + 2 * y_stds, label='upper 2 * std, h = ' + str(h_max), linewidth=2,
+            color='orange')
+    ax.plot(yt_forecast_initial_val - 2 * y_stds, label='lower 2 * std, h = ' + str(h_max), linewidth=2,
+            color='orange')
 
-    plt.plot(yt_forecast_initial_val + 3 * y_stds, label='upper 3 * std, h = ' + str(h_max), linewidth=2, color='red')
-    plt.plot(yt_forecast_initial_val - 3 * y_stds, label='lower 3 * std, h = ' + str(h_max), linewidth=2, color='red')
+    ax.plot(yt_forecast_initial_val + 3 * y_stds, label='upper 3 * std, h = ' + str(h_max), linewidth=2, color='red')
+    ax.plot(yt_forecast_initial_val - 3 * y_stds, label='lower 3 * std, h = ' + str(h_max), linewidth=2, color='red')
 
-    plt.plot(yt_forecasts, label='forecast average, h = ' + str(h_max), linewidth=3, linestyle=':', color='black')
+    ax.plot(yt_forecasts, label='forecast average, h = ' + str(h_max), linewidth=3, linestyle=':', color='black')
 
     plt.legend()
     plt.show()
@@ -454,6 +462,42 @@ if __name__ == '__main__':
     plt.show()
 
     # Comments: Appears useful for short-term forecasting
+    #############################################################################################################
+
+    # step: sharpen a_t distribution
+
+    h = 7
+    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(ts_cut.astype(float), h, None, d_poly, est_q_poly,
+                                                    ts_cross_val)
+
+    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
+        ts_cut.astype(float), h, None,
+        d_poly, est_q_poly, ts_cross_val,
+        num_samples=50)
+
+    fig, ax = plt.subplots(1)
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + y_h_step_stds[i], color='green', linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - y_h_step_stds[i], color='green', linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 3 * y_h_step_stds[i], color='red', linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 3 * y_h_step_stds[i], color='red', linewidth=2)
+        for j in range(y_h_multistep.shape[1]):
+            plt.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=3)
+
+    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
+    ax.plot(ts_cross_val, label='original ts', color='royalblue', linewidth=3)
+    ax.legend()
+    plt.show()
 
     #############################################################################################################
 
@@ -494,35 +538,3 @@ if __name__ == '__main__':
 
     ##########################################################################################################
 
-    h = 2
-    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(ts_cut.astype(float), h, None, d_poly, est_q_poly,
-                                                    ts_cross_val)
-
-    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
-        ts_cut.astype(float), h, None,
-        d_poly, est_q_poly, ts_cross_val,
-        num_samples=50)
-
-    fig, ax = plt.subplots(1)
-
-    for i in range(y_h_multistep.shape[0]):
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + y_h_step_stds[i], color='green', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - y_h_step_stds[i], color='green', linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 3 * y_h_step_stds[i], color='red', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 3 * y_h_step_stds[i], color='red', linewidth=2)
-        for j in range(y_h_multistep.shape[1]):
-            plt.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
-
-    for i in range(y_h_multistep.shape[0]):
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=3)
-
-    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
-    ax.plot(ts_cross_val, label='original ts', color='royalblue', linewidth=3)
-    ax.legend()
-    plt.show()

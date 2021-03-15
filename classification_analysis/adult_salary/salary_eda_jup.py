@@ -4,7 +4,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from classification_plots import create_dummy_matrix, create_classification_plots, create_andrews_plot, \
+# for jupyter:
+# import sys
+# sys.path.append('..')
+
+from classification_funcs.classification_plots import create_dummy_matrix, create_classification_plots, create_andrews_plot, \
     create_rel_polarity_matrix, create_quantitative_mekko_charts, create_qualitative_mekko_charts
 
 

@@ -1,10 +1,10 @@
 import numpy as np
 from sklearn import linear_model
 from sklearn.metrics import explained_variance_score
-from house_eda_jup import price_data_preparation, transform_house_pd
-from regression_plots import create_partial_plots
 import pandas as pd
 
+from house_eda_jup import price_data_preparation, transform_house_pd
+from regression_funcs.regression_plots import create_partial_plots
 
 def evaluate_linear_model(Xs: pd.DataFrame, y_variable: pd.Series):
     linreg = linear_model.LinearRegression()
