@@ -123,216 +123,216 @@ if __name__ == '__main__':
     # substep: Model 1  (Differencing: sec,weeky & yearly) : SMA_7(1)xMA(1)
 
     # AR backshift polynomial
-    p_poly = None
-
-    # MA backshift polynomial
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
-
-    # Differencing polynomial
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B)
-
-    # parameters used in the polynomials above
-    p_symbols = []
-    q_symbols = [a, b]
-
-    res = spp.learn_model(ts_cut_year_week_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    # Plot time-series, autocorrelation, and partial autocorrelation (pacf).
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
-    plt.show()
-
-    # Comments: Studying the autocorrelations of the differenced (1) residuals, the process is almost MA(1), with the first
-    # lag a value of 0.4 (in contrast to a true MA(1) autocor. which has a value of 0.5
-    # However, we now see a significant spike at lag 365, suggesting that the error is not truly white noise.
-    # Perhaps an improvement to this model is to use another seasonal parameter - a moving average: SMA_365(0,1,1). Let
-    # us investigate this now.
-
-    #############################################################################################################
-    # substep: Model 1 + yearly param = Model 1b:  SMA_365(1)xSMA_7(1)xMA(1)
-
-    # test: extra sec.differencing
-    # d_poly *= poly(1-B,B)
-    # ts_cut_year_week_sec = ts_cut_year_week_sec[:-1] - ts_cut_year_week_sec[1:]
-
-    # test: extra month differencing
-    # d_poly *= poly(1-B**week,B)
-    # ts_cut_year_week_sec = ts_cut_year_week_sec[:-week] - ts_cut_year_week_sec[week:]
-
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 365, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B)
-
-    p_symbols = []
-    q_symbols = [a, b, c]
-
-    res = spp.learn_model(ts_cut_year_week_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
-    plt.show()
-
-    # Comments: The autocorrelation's 1st lag value is around 0.39, and now the 365th lag is muted. However, it is
-    # not perfect. Let us look at what happens, if we instead choose to remove the yearly differencing
-    # and the parameter therefore.
-
-    #######################################################################################################
-    # substep: Model 1 - yearly differencing, SMA_7(1)xMA(1)
-
-    ts_cut_week_sec = ts_cut_week[:-1] - ts_cut_week[1:]
-
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B)
-
-    p_symbols = []
-    q_symbols = [a, b]
-
-    res_main = spp.learn_model(ts_cut_week_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res_main.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
-    plt.show()
-
-    # Comments: We find the process almost an MA(1) having a 1st lag value of an 0.413  for the autocorr. There is no
-    # spike for the 365th value. The autocorr. suggests this is a nicer, and perhaps more parsimonous result.
-    # However, it may be argued that this is artefact due to our model using only two years.
-    # If we had used many years, we might find the earlier model to be better.
-
-    # Comments: The model above appears to have significant autocorr values on lag 4 (having value 0.118), and 7 (-0.0111). Let us see
-    # if an extra weekly differencing can remove this.
-
-    #############################################################################################################
-
-    # substep: Model 1c learning (without yr diff), and extra week diff, SMA_7(1)xMA(1)
-
-    ts_cut_week_sec = ts_cut_week[:-1] - ts_cut_week[1:]
-    ts_cut_week2_sec = ts_cut_week_sec[:-week] - ts_cut_week_sec[week:]
-
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B, B)
-
-    p_symbols = []
-    q_symbols = [a, b]
-
-    res = spp.learn_model(ts_cut_week2_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
-    plt.show()
+    # p_poly = None
     #
-    # # Comments: Almost an MA(1), but it has around 0.6 as the 1st lag of the autocorr., and the spikes
-    # # at 4,7 have been muted to values 0.085, -0.075 respectively. However, looking at the first lag,
-    # # it may be that this is over-differencing.
+    # # MA backshift polynomial
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
     #
-    # # Comments: We now proceed to learning models with monthly differencing included.
-    # #############################################################################
+    # # Differencing polynomial
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B)
     #
-    # # substep: Model 2 (Differencing: sec,weeky,monthly & yearly), SMA_30(1)xSMA_7(1)xMA(1)
+    # # parameters used in the polynomials above
+    # p_symbols = []
+    # q_symbols = [a, b]
     #
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 30, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
-
-    p_symbols = []
-    q_symbols = [a, b, c]
-
-    res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
-    plt.show()
+    # res = spp.learn_model(ts_cut_year_week_sec, p_poly, q_poly, p_symbols, q_symbols)
     #
-    # Comments: The process is not MA(1), since the autocorr. has spikes at lags 7,30,365.
-    #  Let us remove the yearly differencing and see what happens.
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
     #
-    # ########################################################################################
-    # substep: Model 2 - yr diff, SMA_30(1)xSMA_7(1)xMA(1)
-
-    ts_cut_month_week = ts_cut_month[:-week] - ts_cut_month[week:]
-    ts_cut_month_week_sec = ts_cut_month_week[:-1] - ts_cut_month_week[1:]
-
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 30, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 30, B)
-
-    p_symbols = []
-    q_symbols = [a, b, c]
-
-    res = spp.learn_model(ts_cut_month_week_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
-    plt.show()
+    # # Plot time-series, autocorrelation, and partial autocorrelation (pacf).
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
+    # plt.show()
     #
-    # # Comments: We find similar to before, the spike at the 365 lag removed. There are still spikes
-    # # for the 7th and 30th lag however, but not too large.
+    # # Comments: Studying the autocorrelations of the differenced (1) residuals, the process is almost MA(1), with the first
+    # # lag a value of 0.4 (in contrast to a true MA(1) autocor. which has a value of 0.5
+    # # However, we now see a significant spike at lag 365, suggesting that the error is not truly white noise.
+    # # Perhaps an improvement to this model is to use another seasonal parameter - a moving average: SMA_365(0,1,1). Let
+    # # us investigate this now.
     #
-    # # Let us instead of removing the yearly difference, we introduce a yearly param.
+    # #############################################################################################################
+    # # substep: Model 1 + yearly param = Model 1b:  SMA_365(1)xSMA_7(1)xMA(1)
     #
-    # #############################################################################
+    # # test: extra sec.differencing
+    # # d_poly *= poly(1-B,B)
+    # # ts_cut_year_week_sec = ts_cut_year_week_sec[:-1] - ts_cut_year_week_sec[1:]
     #
-    # substep: Model 2 + yearly param,   SMA_365(1)xSMA_30(1)xSMA_7(1)xMA(1)
+    # # test: extra month differencing
+    # # d_poly *= poly(1-B**week,B)
+    # # ts_cut_year_week_sec = ts_cut_year_week_sec[:-week] - ts_cut_year_week_sec[week:]
     #
-    p_poly = None
-    q_poly = poly(1 - (a * B) - (b * B ** 7) - (c * B ** 30) - (d * B ** 365), B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
-
-    p_symbols = []
-    q_symbols = [a, b, c, d]
-
-    res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
-    plt.show()
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 365, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B)
     #
-    # # Comments: The autocorr. is far from an MA(1) process. Whilst the 365th lag has been muted, there are spikes
-    # # at lag 1,7-1,7,7+1,365+30.
+    # p_symbols = []
+    # q_symbols = [a, b, c]
     #
-    # # And for our last model (just for studying), we will remove the monthly param, and yearly param.
+    # res = spp.learn_model(ts_cut_year_week_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
+    # plt.show()
+    #
+    # # Comments: The autocorrelation's 1st lag value is around 0.39, and now the 365th lag is muted. However, it is
+    # # not perfect. Let us look at what happens, if we instead choose to remove the yearly differencing
+    # # and the parameter therefore.
+    #
+    # #######################################################################################################
+    # # substep: Model 1 - yearly differencing, SMA_7(1)xMA(1)
+    #
+    # ts_cut_week_sec = ts_cut_week[:-1] - ts_cut_week[1:]
+    #
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b]
+    #
+    # res_main = spp.learn_model(ts_cut_week_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res_main.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
+    # plt.show()
+    #
+    # # Comments: We find the process almost an MA(1) having a 1st lag value of an 0.413  for the autocorr. There is no
+    # # spike for the 365th value. The autocorr. suggests this is a nicer, and perhaps more parsimonous result.
+    # # However, it may be argued that this is artefact due to our model using only two years.
+    # # If we had used many years, we might find the earlier model to be better.
+    #
+    # # Comments: The model above appears to have significant autocorr values on lag 4 (having value 0.118), and 7 (-0.0111). Let us see
+    # # if an extra weekly differencing can remove this.
     #
     # #############################################################################################################
     #
-    # # substep: Model 2 - monthly param, SMA_7(1)xMA(1)
+    # # substep: Model 1c learning (without yr diff), and extra week diff, SMA_7(1)xMA(1)
     #
-    p_poly = None
-    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
-    d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
-
-    p_symbols = []
-    q_symbols = [a, b]
-
-    res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
-
-    ARIMA_coeffs = res.x
-    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
-    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
-
-    create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
-    plt.show()
+    # ts_cut_week_sec = ts_cut_week[:-1] - ts_cut_week[1:]
+    # ts_cut_week2_sec = ts_cut_week_sec[:-week] - ts_cut_week_sec[week:]
+    #
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b]
+    #
+    # res = spp.learn_model(ts_cut_week2_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
+    # plt.show()
+    # #
+    # # # Comments: Almost an MA(1), but it has around 0.6 as the 1st lag of the autocorr., and the spikes
+    # # # at 4,7 have been muted to values 0.085, -0.075 respectively. However, looking at the first lag,
+    # # # it may be that this is over-differencing.
+    # #
+    # # # Comments: We now proceed to learning models with monthly differencing included.
+    # # #############################################################################
+    # #
+    # # # substep: Model 2 (Differencing: sec,weeky,monthly & yearly), SMA_30(1)xSMA_7(1)xMA(1)
+    # #
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 30, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b, c]
+    #
+    # res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=380)
+    # plt.show()
+    # #
+    # # Comments: The process is not MA(1), since the autocorr. has spikes at lags 7,30,365.
+    # #  Let us remove the yearly differencing and see what happens.
+    # #
+    # # ########################################################################################
+    # # substep: Model 2 - yr diff, SMA_30(1)xSMA_7(1)xMA(1)
+    #
+    # ts_cut_month_week = ts_cut_month[:-week] - ts_cut_month[week:]
+    # ts_cut_month_week_sec = ts_cut_month_week[:-1] - ts_cut_month_week[1:]
+    #
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B) * poly(1 - c * B ** 30, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 30, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b, c]
+    #
+    # res = spp.learn_model(ts_cut_month_week_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
+    # plt.show()
+    # #
+    # # # Comments: We find similar to before, the spike at the 365 lag removed. There are still spikes
+    # # # for the 7th and 30th lag however, but not too large.
+    # #
+    # # # Let us instead of removing the yearly difference, we introduce a yearly param.
+    # #
+    # # #############################################################################
+    # #
+    # # substep: Model 2 + yearly param,   SMA_365(1)xSMA_30(1)xSMA_7(1)xMA(1)
+    # #
+    # p_poly = None
+    # q_poly = poly(1 - (a * B) - (b * B ** 7) - (c * B ** 30) - (d * B ** 365), B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b, c, d]
+    #
+    # res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
+    # plt.show()
+    # #
+    # # # Comments: The autocorr. is far from an MA(1) process. Whilst the 365th lag has been muted, there are spikes
+    # # # at lag 1,7-1,7,7+1,365+30.
+    # #
+    # # # And for our last model (just for studying), we will remove the monthly param, and yearly param.
+    # #
+    # # #############################################################################################################
+    # #
+    # # # substep: Model 2 - monthly param, SMA_7(1)xMA(1)
+    # #
+    # p_poly = None
+    # q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 7, B)
+    # d_poly = poly(1 - B, B) * poly(1 - B ** 7, B) * poly(1 - B ** 365, B) * poly(1 - B ** 30, B)
+    #
+    # p_symbols = []
+    # q_symbols = [a, b]
+    #
+    # res = spp.learn_model(ts_cut_year_week_month_sec, p_poly, q_poly, p_symbols, q_symbols)
+    #
+    # ARIMA_coeffs = res.x
+    # p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    # q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+    #
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
+    # plt.show()
 
     # Comments: The process is far from an MA(1), due to having spikes at lag 30, and 365 and also at (30-1,30+1), and (365-30,365+30).
     # From earlier, seeing that removing the yearly differencing yields better results than introducing a yearly parameter, it
@@ -347,6 +347,7 @@ if __name__ == '__main__':
 
     ts_cut = series_data[:(2 * 365)]
     ts_cross_val = series_data[2 * 365:(2 * 365) + 70]
+
     ts_cut_week = ts_cut[:-week] - ts_cut[week:]
     ts_cut_week_sec = ts_cut_week[:-1] - ts_cut_week[1:]
 
@@ -362,6 +363,9 @@ if __name__ == '__main__':
     ARIMA_coeffs = res_main.x
     p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
     q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+
+    # create_residuals_subplots(ts_cut, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100)
+    # plt.show()
 
     N = len(ts_cut)
     h_max = 125  # forecast length
@@ -407,16 +411,26 @@ if __name__ == '__main__':
         ax.plot(y_multiforecasts[i], linewidth=0.5, linestyle='--')
 
     yt_forecast_initial_val = ts_cut[-1]
-    ax.plot(yt_forecast_initial_val + y_stds, label='upper std, h = ' + str(h_max), linewidth=2, color='green')
-    ax.plot(yt_forecast_initial_val - y_stds, label='lower std, h = ' + str(h_max), linewidth=2, color='green')
+    N = len(ts_cut)
+    forecast_len = len(y_stds) - N
+    forecast_interval = np.arange(N, N + forecast_len)
+    y_stds = y_stds[-forecast_len:]  # take only the y_stds beyond the series length
+    ax.plot(forecast_interval, yt_forecast_initial_val + y_stds, label='upper std, h = ' + str(h_max), linewidth=2,
+            color='green')
+    ax.plot(forecast_interval, yt_forecast_initial_val - y_stds, label='lower std, h = ' + str(h_max), linewidth=2,
+            color='green')
 
-    ax.plot(yt_forecast_initial_val + 2 * y_stds, label='upper 2 * std, h = ' + str(h_max), linewidth=2,
+    ax.plot(forecast_interval, yt_forecast_initial_val + 2 * y_stds, label='upper 2 * std, h = ' + str(h_max),
+            linewidth=2,
             color='orange')
-    ax.plot(yt_forecast_initial_val - 2 * y_stds, label='lower 2 * std, h = ' + str(h_max), linewidth=2,
+    ax.plot(forecast_interval, yt_forecast_initial_val - 2 * y_stds, label='lower 2 * std, h = ' + str(h_max),
+            linewidth=2,
             color='orange')
 
-    ax.plot(yt_forecast_initial_val + 3 * y_stds, label='upper 3 * std, h = ' + str(h_max), linewidth=2, color='red')
-    ax.plot(yt_forecast_initial_val - 3 * y_stds, label='lower 3 * std, h = ' + str(h_max), linewidth=2, color='red')
+    ax.plot(forecast_interval, yt_forecast_initial_val + 3 * y_stds, label='upper 3 * std, h = ' + str(h_max),
+            linewidth=2, color='red')
+    ax.plot(forecast_interval, yt_forecast_initial_val - 3 * y_stds, label='lower 3 * std, h = ' + str(h_max),
+            linewidth=2, color='red')
 
     ax.plot(yt_forecasts, label='forecast average, h = ' + str(h_max), linewidth=3, linestyle=':', color='black')
 
@@ -435,23 +449,24 @@ if __name__ == '__main__':
     y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
         ts_cut.astype(float), h, None,
         d_poly, est_q_poly, ts_cross_val,
-        num_samples=200)
+        num_samples=400)
 
     fig, ax = plt.subplots(1)
 
     for i in range(y_h_multistep.shape[0]):
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + y_h_step_stds[i], color='green', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - y_h_step_stds[i], color='green', linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 3 * y_h_step_stds[i], color='red', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 3 * y_h_step_stds[i], color='red', linewidth=2)
         for j in range(y_h_multistep.shape[1]):
             ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green', linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red', linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red', linewidth=2)
 
     for i in range(y_h_multistep.shape[0]):
         ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=4)
@@ -473,23 +488,27 @@ if __name__ == '__main__':
     y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
         ts_cut.astype(float), h, None,
         d_poly, est_q_poly, ts_cross_val,
-        num_samples=50)
+        num_samples=400)
 
     fig, ax = plt.subplots(1)
 
     for i in range(y_h_multistep.shape[0]):
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + y_h_step_stds[i], color='green', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - y_h_step_stds[i], color='green', linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 3 * y_h_step_stds[i], color='red', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 3 * y_h_step_stds[i], color='red', linewidth=2)
         for j in range(y_h_multistep.shape[1]):
-            plt.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
 
     for i in range(y_h_multistep.shape[0]):
         ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=3)
@@ -510,23 +529,27 @@ if __name__ == '__main__':
     y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
         ts_cut.astype(float), h, None,
         d_poly, est_q_poly, ts_cross_val,
-        num_samples=50)
+        num_samples=400)
 
     fig, ax = plt.subplots(1)
 
     for i in range(y_h_multistep.shape[0]):
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + y_h_step_stds[i], color='green', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - y_h_step_stds[i], color='green', linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 2 * y_h_step_stds[i], color='orange',
-                linewidth=2)
-
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] + 3 * y_h_step_stds[i], color='red', linewidth=2)
-        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h)] - 3 * y_h_step_stds[i], color='red', linewidth=2)
         for j in range(y_h_multistep.shape[1]):
-            plt.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
 
     for i in range(y_h_multistep.shape[0]):
         ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=3)
@@ -537,4 +560,3 @@ if __name__ == '__main__':
     plt.show()
 
     ##########################################################################################################
-
