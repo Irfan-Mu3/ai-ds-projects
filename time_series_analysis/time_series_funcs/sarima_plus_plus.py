@@ -5,6 +5,8 @@ from sympy import poly, lambdify, series
 from sympy.abc import B, a, b, c, d
 from scipy.optimize import least_squares
 
+from san_franc_police.incidents_police_dep_eda_jup import create_series_plot
+
 
 # from scipy.optimize import minimize, basinhopping, brute , Bounds
 # from numba import jit, njit
@@ -23,7 +25,6 @@ def learn_model(ts, p_pol, q_pol, p_symbs, q_symbs, bounds=(-1, 1)):
                         args=(ts, p_pol, q_pol, p_symbs, q_symbs, len(p_symbs), len(q_symbs)))
 
     return res
-
 
 def sampleARIMA(p_vec, q_vec, sd, N):
     a_t = np.random.normal(0, sd, N)
@@ -104,6 +105,52 @@ def calculateSeasonalARIMA_error(y_t, p_poly, d_poly, q_poly):
 
     # step: de-MA filter
     a_t = integrate_series(zed_t, q_poly, True)
+
+    return a_t
+
+
+def calculateSeasonalARIMA_error_minimization_form_slow(ARIMA_coeffs: np.asarray, w_t: np.ndarray, p_poly: poly,
+                                                        q_poly: poly,
+                                                        p_symbols: list, q_symbols: list, AR_num_params: int,
+                                                        MA_num_params: int):
+    # ARIMA_coeffs: AR and MA coeffs, with AR coeffs listed first in order they appear.
+    # z_t: the differenced series, with mean subtracted, i.e.
+    # z_t = w_t - mean(w_t), where w_t = difference_series(y_t)
+    # and y_t is the original series.
+    # p_coeff_lambds: lambdas to obtain the (SAR) polynomial coefficients via the AR coeffs
+    # q_coeff_lambds: lambdas to obtain the (SMA) polynomial coefficients via the MA coeffs
+    # p_lags: the lags for AR parameters
+    # q_lags: the lags for MA parameters
+    # p_coeff_size: the number of AR params
+    # q_coeff_size: the number of MA params
+
+    # warn: slow since we cannot jit/njit this (via numba) as easily.
+
+    if p_poly is not None:
+        p_ARIMA_coeffs = ARIMA_coeffs[:AR_num_params]
+        est_p_poly: poly = poly(p_poly.subs(dict(zip(p_symbols, p_ARIMA_coeffs))), B)
+    else:
+        est_p_poly = None
+
+    if q_poly is not None:
+        q_ARIMA_coeffs = ARIMA_coeffs[-MA_num_params:]
+        est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
+    else:
+        est_q_poly = None
+
+    # remember: Differencing is parameter independent, and must be performed outside this function (as an optimization).
+    #  This is why we use w_t as the parameter, and not y_t.
+
+    # step: de-AR filter
+    zed_t = MA_helper(w_t, est_p_poly, False)
+    zed_t = zed_t.astype(float)
+
+    # step: de-Delta
+    delta = np.mean(w_t) if est_p_poly is None else sum(np.asarray(est_p_poly.coeffs()).astype(float)) * np.mean(w_t)
+    zed_t -= delta
+
+    # step: de-MA filter
+    a_t = integrate_series(zed_t, est_q_poly, True)
 
     return a_t
 
@@ -242,52 +289,6 @@ def lambdify_poly_coeff_creator(poly_coeffs, symbols):
     return np.asarray(lambds)
 
 
-def calculateSeasonalARIMA_error_minimization_form_slow(ARIMA_coeffs: np.asarray, w_t: np.ndarray, p_poly: poly,
-                                                        q_poly: poly,
-                                                        p_symbols: list, q_symbols: list, AR_num_params: int,
-                                                        MA_num_params: int):
-    # ARIMA_coeffs: AR and MA coeffs, with AR coeffs listed first in order they appear.
-    # z_t: the differenced series, with mean subtracted, i.e.
-    # z_t = w_t - mean(w_t), where w_t = difference_series(y_t)
-    # and y_t is the original series.
-    # p_coeff_lambds: lambdas to obtain the (SAR) polynomial coefficients via the AR coeffs
-    # q_coeff_lambds: lambdas to obtain the (SMA) polynomial coefficients via the MA coeffs
-    # p_lags: the lags for AR parameters
-    # q_lags: the lags for MA parameters
-    # p_coeff_size: the number of AR params
-    # q_coeff_size: the number of MA params
-
-    # warn: slow since we cannot jit/njit this (via numba) as easily.
-
-    if p_poly is not None:
-        p_ARIMA_coeffs = ARIMA_coeffs[:AR_num_params]
-        est_p_poly: poly = poly(p_poly.subs(dict(zip(p_symbols, p_ARIMA_coeffs))), B)
-    else:
-        est_p_poly = None
-
-    if q_poly is not None:
-        q_ARIMA_coeffs = ARIMA_coeffs[-MA_num_params:]
-        est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
-    else:
-        est_q_poly = None
-
-    # remember: Differencing is parameter independent, and must be performed outside this function.
-    #  This is why we use w_t as the parameter, and not y_t.
-
-    # step: de-AR filter
-    zed_t = MA_helper(w_t, est_p_poly, False)
-    zed_t = zed_t.astype(float)
-
-    # step: de-Delta
-    delta = np.mean(w_t) if est_p_poly is None else sum(np.asarray(est_p_poly.coeffs()).astype(float)) * np.mean(w_t)
-    zed_t -= delta
-
-    # step: de-MA filter
-    a_t = integrate_series(zed_t, est_q_poly, True)
-
-    return a_t
-
-
 # remember: faster implementation that can use numba better as it does not use polynomials from sympy.
 # def calculateSeasonalARIMA_error_minimization_form(ARIMA_coeffs: np.asarray, w_t: np.ndarray, p_coeff_lambds,
 #                                                    q_coeff_lambds, p_lags,
@@ -341,9 +342,9 @@ def calculateSeasonalARIMA_error_minimization_form_slow(ARIMA_coeffs: np.asarray
 #     return a_t
 
 
-def full_form_squared(ARIMA_coeffs: np.asarray, w_t: np.ndarray, p_coeff_lambds,
-                      q_coeff_lambds, p_lags,
-                      q_lags, p_coeff_size, q_coeff_size):
+def SARIMA_error_squared(ARIMA_coeffs: np.asarray, w_t: np.ndarray, p_coeff_lambds,
+                         q_coeff_lambds, p_lags,
+                         q_lags, p_coeff_size, q_coeff_size):
     # wraps error as summed squared error, needed for particular minimization functions.
     res = calculateSeasonalARIMA_error_minimization_form_slow(ARIMA_coeffs, w_t, p_coeff_lambds,
                                                               q_coeff_lambds, p_lags,
@@ -380,6 +381,7 @@ def compute_conf_intervals_via_shock_poly(a_t, p_poly, d_poly, q_poly, num_coeff
     return std_errors
 
 
+# remember: this method is not needed for the slow minimization form.
 def get_coeffs_lags_lambds(z_poly, z_symbols):
     if z_poly is None:
         return None, None, None
@@ -392,9 +394,9 @@ def get_coeffs_lags_lambds(z_poly, z_symbols):
 
 
 if __name__ == '__main__':
-    np.random.seed(124567)
-
     ###################################################################################################
+    # test: study a random problem.
+    # np.random.seed(124567)
 
     # Define process parameters: 1) AR, D & MA polynomials, 2) mean of process which is a (deviations from mean)
     # 3) std of shock/gaussian error terms
@@ -402,17 +404,17 @@ if __name__ == '__main__':
     mu = 0
     std = 0.01
 
-    p_poly = poly(1 - (a * B) - (d * B ** 2), B) * poly(1 - (b * B ** 8) - (c * B ** 16), B)
+    p_poly = poly(1 - (a * B), B) * poly(1 - (b * B ** 7), B) * poly(1 - c * B ** 31, B)
     q_poly = poly(1 - a * B, B) * poly(1 - (b * B ** 7), B) * poly(1 - c * B ** 31, B)
     d_poly = poly((1 - B), B)
 
     # Free symbols in the order they appear above
-    p_symbols = [a, d, b, c]
+    p_symbols = [a, b, c]
     q_symbols = [a, b, c]
 
     # Coefficients in the order they appear above
-    p_AR_coeffs = [-0.5, 0.4, -0.3, -0.4]
-    q_MA_coeffs = [-0.3, -0.6, -0.2]
+    p_AR_coeffs = np.random.choice([-1, 1], 3) * np.random.rand(3)  # [-0.5, 0.4, -0.3]
+    q_MA_coeffs = np.random.choice([-1, 1], 3) * np.random.rand(3)  # [-0.3, -0.6, -0.2]
 
     sample_p_poly = poly(p_poly.subs(dict(zip(p_symbols, p_AR_coeffs[:len(p_AR_coeffs)]))))
     sample_q_poly = poly(q_poly.subs(dict(zip(q_symbols, q_MA_coeffs[-len(q_MA_coeffs):]))))
@@ -421,8 +423,8 @@ if __name__ == '__main__':
     print(sample_q_poly)
 
     # param bounds
-    p_param_abs_bounds = [2]
-    q_param_abs_bounds = [2]
+    p_param_abs_bounds = [1]
+    q_param_abs_bounds = [1]
 
     # assumes multiplicative model
     total_params = np.append(p_param_abs_bounds, q_param_abs_bounds)
@@ -452,12 +454,26 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
+    #######################################################################################
+
+    # test: check via autocorr. if SARIMA++ samples have actual high-order seasons
+
+    diff_y_t = y_t_sampled[:-1] - y_t_sampled[1:]
+    create_series_plot(diff_y_t, int(N / 4))
+    plt.show()
+
+    diff_y_t = diff_y_t[:-7] - diff_y_t[7:]
+    create_series_plot(diff_y_t, int(N / 4))
+    plt.show()
+
+    # Comments: Appears so for some.
+
     #########################################################################################
 
     # step: learn the coefficients from the sampled process
 
-    p_poly_coeffs, p_lags, p_coeff_lambds = get_coeffs_lags_lambds(p_poly, p_symbols)
-    q_poly_coeffs, q_lags, q_coeff_lambds = get_coeffs_lags_lambds(q_poly, q_symbols)
+    # p_poly_coeffs, p_lags, p_coeff_lambds = get_coeffs_lags_lambds(p_poly, p_symbols)
+    # q_poly_coeffs, q_lags, q_coeff_lambds = get_coeffs_lags_lambds(q_poly, q_symbols)
 
     initial_guess = np.random.random(len(p_AR_coeffs) + len(q_MA_coeffs))
     initial_guess /= np.sum(initial_guess)
@@ -468,7 +484,7 @@ if __name__ == '__main__':
     #                method='Nelder-Mead', options={'maxiter': 5000, 'disp': True})
 
     # warn: lm method does not allow bounds, therefore good initial guess is needed
-    #  (i.e. satisfying conditions like invertibility)
+    #  (to satisfy conditions like invertibility)
     res = least_squares(calculateSeasonalARIMA_error_minimization_form_slow, bounds=(-2, 2), x0=initial_guess,
                         args=(est_w_t, p_poly, q_poly, p_symbols, q_symbols, len(p_AR_coeffs),
                               len(q_MA_coeffs)),
@@ -521,9 +537,9 @@ if __name__ == '__main__':
     est_w_t_flipped = difference_series(y_t_sampled_flipped, d_poly)
 
     # remember: With multiplicative models, flipping param polynomials for backcasting yields the same lags as forecasting.
-    # remember: e.g. 1) res_b = polyb.diff().coeffs() / np.asarray(polyb.coeffs())[:-1]
+    #  e.g. 1) res_b = polyb.diff().coeffs() / np.asarray(polyb.coeffs())[:-1]
     #  Then 2) np.flip(res_b) - res_b[-1] + 1 === res_b
-    # remember: Although, something can be left to be said about the parameter values
+    #  Although, something can be said about the parameter values.
 
     res = least_squares(calculateSeasonalARIMA_error_minimization_form_slow, bounds=(-2, 2), x0=initial_guess,
                         args=(est_w_t_flipped, p_poly, q_poly, p_symbols, q_symbols, len(p_AR_coeffs),
@@ -550,7 +566,7 @@ if __name__ == '__main__':
     plt.plot(np.arange(0, N), y_t_sampled, label='original zt sampled')
 
     ###################################################################################################################
-    # Error Intervals for fore/back casting
+    # step: Error Intervals for fore/back casting
 
     num_coeffs = len(p_AR_coeffs) + len(q_MA_coeffs)
     num_coeffs += 1 if mu != 0 else 0

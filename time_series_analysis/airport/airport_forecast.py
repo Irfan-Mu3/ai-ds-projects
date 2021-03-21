@@ -1,20 +1,14 @@
-import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
-from scipy.optimize import least_squares
-import statsmodels.tsa.stattools as stt
-from sympy import poly
-from sympy.abc import a, b, B, c, d
-import time_series_funcs.sarima_plus_plus as tsf
 import pandas as pd
+import statsmodels.tsa.stattools as stt
 from matplotlib import pyplot as plt
-from statsmodels.tsa.holtwinters import ExponentialSmoothing as holtwinters
+from sympy import poly
+from sympy.abc import a, b, B
+
+import time_series_funcs.sarima_plus_plus as spp
 
 
-# todo tommorrow: solve problem, forecast sol, plot autocorr, test if MA(1)
-# todo: after finding weekly correlate, look at averages of days of the week over the years
-# todo: study particular crimes
-
+# import time_series_funcs.holt_winters_plus_plus as hwpp
 
 def compute_rks(xs):
     # computes the autocorrelation
@@ -131,17 +125,7 @@ def create_series_plot(ts: np.ndarray, pacf_max, corr_max=None, ts_is_residuals=
     return fig, (ax1, ax2, ax3)
 
 
-def learn_model(ts, p_pol, q_pol, p_symbs, q_symbs, bounds=(-1, 1)):
-    initial_guess = np.random.random(len(p_symbs) + len(q_symbs))
-    initial_guess /= np.sum(initial_guess)
-
-    res = least_squares(tsf.calculateSeasonalARIMA_error_minimization_form_slow, bounds=bounds, x0=initial_guess,
-                        args=(ts, p_pol, q_pol, p_symbs, q_symbs, len(p_symbs), len(q_symbs)))
-
-    return res
-
-
-def plot_res(ts, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100, ):
+def plot_residuals(ts, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=100, ):
     fig, (ax1, ax2, ax3) = plt.subplots(3, 1)
 
     ts = ts.astype(float)
@@ -159,7 +143,7 @@ def plot_res(ts, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_ma
     print("est_q_poly:", est_q_poly)
 
     # remember: use non-differenced series
-    model_err = tsf.calculateSeasonalARIMA_error(ts, est_p_poly, d_poly, est_q_poly)
+    model_err = spp.calculateSeasonalARIMA_error(ts, est_p_poly, d_poly, est_q_poly)
 
     # step: differencing error, to test if if the noise term is describable by a MA(1) process
 
@@ -202,8 +186,8 @@ def plot_res(ts, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_ma
 if __name__ == '__main__':
     df = pd.read_csv('Airport_Monthly_Operational_Report.csv')
     df = df.sort_values(by=['Month'])
-    cargo_total_series = df['Cargo Totals (Cargo + Mail + Belly Freight)'].to_numpy()
-    total_op_series = df['Total Operations'].to_numpy()
+    # cargo_total_series = df['Cargo Totals (Cargo + Mail + Belly Freight)'].to_numpy()
+    # total_op_series = df['Total Operations'].to_numpy()
     total_ppl_series = df['Total Passengers'].to_numpy()
 
     ###################################################################################################################
@@ -218,41 +202,47 @@ if __name__ == '__main__':
     plt.show()
 
     # step: stationarize series
+    # total_ppl_series = np.log(total_ppl_series) # remember: for stability of variance
 
     create_series_plot(total_ppl_series, pacf_max=60, corr_max=int(len(total_ppl_series) / 4), ts_is_residuals=False,
-                       y_label='No. incidents')
+                       ts_label='Passengers total')
+    plt.legend()
     plt.show()
 
+    # remember: need to remove intervention to determine autocorr properly
+    #  Last seven points correspond to 2020, with last 5 points appear to be affected
+    orig_total_ppl_series = total_ppl_series
+    total_ppl_series = total_ppl_series[:-7]
+
     tps_diff = total_ppl_series[:-1] - total_ppl_series[1:]
-    create_series_plot(tps_diff, pacf_max=60, corr_max=int(len(tps_diff) / 4), ts_is_residuals=False,
-                       y_label='No. incidents, diff 1')
+    create_series_plot(tps_diff, pacf_max=50, corr_max=int(len(tps_diff) / 4), ts_is_residuals=False,
+                       ts_label='Passengers total, diff 1')
+    plt.legend()
     plt.show()
 
     tps_diff_bi_year = tps_diff[:-6] - tps_diff[6:]
-    create_series_plot(tps_diff_bi_year, pacf_max=50, corr_max=int(len(tps_diff_bi_year) / 4), ts_is_residuals=False,
-                       y_label='No. incidents, diff 1')
+    create_series_plot(tps_diff_bi_year, pacf_max=35, corr_max=int(len(tps_diff_bi_year) / 4), ts_is_residuals=False,
+                       ts_label='Passengers total, diff 6')
+    plt.legend()
     plt.show()
 
     tps_diff_month = tps_diff[:-12] - tps_diff[12:]
-    create_series_plot(tps_diff_month, pacf_max=50, corr_max=int(len(tps_diff_month) / 4), ts_is_residuals=False,
-                       y_label='No. incidents, diff 1')
+    create_series_plot(tps_diff_month, pacf_max=35, corr_max=int(len(tps_diff_month) / 4), ts_is_residuals=False,
+                       ts_label='Passengers total, diff 12')
+    plt.legend()
     plt.show()
-
-
 
     # Comments: It would appear that a differencing of 1,12 is all that is needed.
 
     ############################################################################################################
 
     # step: split data
-    # Last seven points correspond to 2020, with last 5 points appear to be affected
-    total_ppl_series = total_ppl_series[:-7]
+
     # For testing, we further remove 2 years
     total_ppl_series = total_ppl_series[:-24]
 
     ts_diff = total_ppl_series[:-1] - total_ppl_series[1:]
-    ts_diff_bi_year = ts_diff[:-6] - ts_diff[6:]
-    ts_diff_month = ts_diff[:-12] - ts_diff[12:]
+    ts_diff_year = ts_diff[:-12] - ts_diff[12:]
 
     # step: forecast with mul. SARIMA
 
@@ -263,13 +253,53 @@ if __name__ == '__main__':
     p_symbols = []
     q_symbols = [a, b]
 
-    res = learn_model(ts_diff_month, p_poly, q_poly, p_symbols, q_symbols)
+    res = spp.learn_model(ts_diff_year, p_poly, q_poly, p_symbols, q_symbols)
 
     ARIMA_coeffs = res.x
     p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
     q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
 
-    plot_res(total_ppl_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
+    plot_residuals(total_ppl_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
+    plt.show()
+
+    #####
+    h = 24
+    est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
+
+    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(total_ppl_series.astype(float), h, None, d_poly, est_q_poly,
+                                                    orig_total_ppl_series[-31:])
+
+    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
+        total_ppl_series.astype(float), h, None,
+        d_poly, est_q_poly, orig_total_ppl_series[-31:],
+        num_samples=400)
+
+    fig, ax = plt.subplots(1)
+
+    for i in range(y_h_multistep.shape[0]):
+        for j in range(y_h_multistep.shape[1]):
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=4)
+
+    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
+    ax.plot(orig_total_ppl_series[-31:], label='original ts', color='royalblue', linewidth=3)
+    plt.legend()
     plt.show()
 
     # Comments: The differenced result is almost white noise. However the first lag of the autocorr. is 0.25, not 0.5
@@ -278,23 +308,216 @@ if __name__ == '__main__':
 
     q_poly = poly(1 - a * B - b * B ** 12, B)
 
-    res = learn_model(ts_diff_month, p_poly, q_poly, p_symbols, q_symbols)
+    res = spp.learn_model(ts_diff_year, p_poly, q_poly, p_symbols, q_symbols)
 
     ARIMA_coeffs = res.x
     p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
     q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
 
-    plot_res(total_ppl_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
+    plot_residuals(total_ppl_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
     plt.show()
 
+    ###
+    h = 24
+    est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
 
-    # step: forecast with Holt-winters
+    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(total_ppl_series.astype(float), h, None, d_poly, est_q_poly,
+                                                    orig_total_ppl_series[-31:])
 
-    # comment: the trend grows, so it is multiplicative
-    hw_model = holtwinters(total_ppl_series, seasonal_periods=12, trend='add')
-    hw_model = hw_model.fit()
+    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
+        total_ppl_series.astype(float), h, None,
+        d_poly, est_q_poly, orig_total_ppl_series[-31:],
+        num_samples=400)
 
-    h_forecasts = hw_model.forecast(steps=12)
-    plt.plot(total_ppl_series)
-    plt.plot(np.arange(len(total_ppl_series),len(total_ppl_series)+ len(h_forecasts)), h_forecasts)
+    fig, ax = plt.subplots(1)
+
+    for i in range(y_h_multistep.shape[0]):
+        for j in range(y_h_multistep.shape[1]):
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=4)
+
+    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
+    ax.plot(orig_total_ppl_series[-31:], label='original ts', color='royalblue', linewidth=3)
+    plt.legend()
     plt.show()
+    ####################################################################################################################
+
+    # step: see if other series can be blind forecasted with (mul) airline model :
+
+    q_poly = poly(1 - a * B, B) * poly(1 - b * B ** 12, B)
+
+    # substep: cargo totals
+
+    orig_cargo_total_series = df['Cargo Totals (Cargo + Mail + Belly Freight)'].to_numpy()
+    cargo_total_series = orig_cargo_total_series[:-(7 + 24)]
+
+    res = spp.learn_model(ts_diff_year, p_poly, q_poly, p_symbols, q_symbols)
+
+    ARIMA_coeffs = res.x
+    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+
+    plot_residuals(cargo_total_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
+    plt.show()
+
+    ###
+    h = 24
+    est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
+
+    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(cargo_total_series.astype(float), h, None, d_poly, est_q_poly,
+                                                    orig_cargo_total_series[-31:])
+
+    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
+        cargo_total_series.astype(float), h, None,
+        d_poly, est_q_poly, orig_cargo_total_series[-31:],
+        num_samples=400)
+
+    fig, ax = plt.subplots(1)
+
+    for i in range(y_h_multistep.shape[0]):
+        for j in range(y_h_multistep.shape[1]):
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=4)
+
+    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
+    ax.plot(orig_cargo_total_series[-31:], label='original ts', color='royalblue', linewidth=3)
+    plt.legend()
+    plt.show()
+
+    # Comments: The fit isn't perfect. Looking at the residuals, it appears there is a correlation to study.
+
+    ###################################################################################################################
+
+    # substep: Total operations
+
+    orig_total_op_series = df['Total Operations'].to_numpy()
+    total_op_series = orig_total_op_series[:-(7 + 24)]
+
+    res = spp.learn_model(ts_diff_year, p_poly, q_poly, p_symbols, q_symbols)
+
+    ARIMA_coeffs = res.x
+    p_ARIMA_coeffs = ARIMA_coeffs[:len(p_symbols)]
+    q_ARIMA_coeffs = ARIMA_coeffs[-len(p_symbols):]
+
+    plot_residuals(total_op_series, p_poly, q_poly, d_poly, p_ARIMA_coeffs, q_ARIMA_coeffs, pacf_max=30)
+    plt.show()
+
+    ###
+    h = 24
+    est_q_poly: poly = poly(q_poly.subs(dict(zip(q_symbols, q_ARIMA_coeffs))), B)
+
+    y_h_pieces = spp.stepwise_forecastSeasonalARIMA(total_op_series.astype(float), h, None, d_poly, est_q_poly,
+                                                    orig_total_op_series[-31:])
+
+    y_h_multistep, y_h_step_stds, y_h_steps_means = spp.batch_stepwise_forecastSeasonalARIMA(
+        total_op_series.astype(float), h, None,
+        d_poly, est_q_poly, orig_total_op_series[-31:],
+        num_samples=400)
+
+    fig, ax = plt.subplots(1)
+
+    for i in range(y_h_multistep.shape[0]):
+        for j in range(y_h_multistep.shape[1]):
+            ax.plot(np.arange((i * h), (i + 1) * h), y_h_multistep[i, j], linewidth=0.25, linestyle='--')
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + y_h_step_stds[i], color='green',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - y_h_step_stds[i], color='green',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 2 * y_h_step_stds[i], color='orange',
+                linewidth=2)
+
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] + 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_pieces[(i * h):(i + 1) * h] - 3 * y_h_step_stds[i], color='red',
+                linewidth=2)
+
+    for i in range(y_h_multistep.shape[0]):
+        ax.plot(np.arange((i * h), (i + 1) * h), y_h_steps_means[i], color='hotpink', linewidth=4)
+
+    ax.plot(y_h_pieces, label='forecasting with lag:' + str(h), color='black', linewidth=3, linestyle='--')
+    ax.plot(orig_total_op_series[-31:], label='original ts', color='royalblue', linewidth=3)
+    plt.legend()
+    plt.show()
+
+    # Comments: This appears to be well-fit.
+
+    ###################################################################################################################
+
+    # step: forecast with Holt-winters mult
+
+    # # comment: the trend grows, so it is multiplicative
+    # res_mul = hwpp.learn_mul_hw(total_ppl_series)
+    # print("holt-winter mul est. params:", res_mul.x)
+    #
+    # _, est_a_t = hwpp.mul_hw_error(total_ppl_series, *(res_mul.x), )
+    # est_ts_mhw, _ = hwpp.sample_mul_hw(len(total_ppl_series), *(res_mul.x), e_t=est_a_t, )
+    # mul_forecast, _ = hwpp.forecast_mul_hw(est_a_t, *res_mul.x,period=12,h=24+7,random=False)
+    #
+    # plt.plot(total_ppl_series, label='orig', linestyle=':', linewidth=5)
+    # plt.plot(est_ts_mhw, label='est es.', linestyle=':', )
+    # plt.plot(mul_forecast,label='forecast')
+    # plt.plot(orig_total_ppl_series,label='orig series')
+    # plt.plot(est_a_t,label='est error',alpha=0.5)
+    #
+    # # plt.plot(est_a_t, label='estimated err')
+    # plt.legend()
+    # plt.show()
+    #
+    # # step: forecast with Holt-winters add
+    #
+    # res_add = hwpp.learn_add_hw(total_ppl_series)
+    # print("holt-winter mul est. params:", res_add.x)
+    #
+    # _, est_a_t = hwpp.add_hw_error(total_ppl_series, *(res_add.x), )
+    # est_ts_ahw, _ = hwpp.sample_add_hw(len(total_ppl_series), *(res_add.x), e_t=est_a_t, )
+    # add_forecast, _ = hwpp.forecast_add_hw(est_a_t, *res_add.x,period=12,h=24+7,random=False)
+    #
+    # plt.plot(total_ppl_series, label='orig', linestyle=':', linewidth=5)
+    # plt.plot(est_ts_ahw, label='est es.', linestyle=':', )
+    # plt.plot(add_forecast,label='forecast')
+    # plt.plot(orig_total_ppl_series,label='orig series')
+    # plt.plot(est_a_t,label='est error',alpha=0.5)
+    #
+    # # plt.plot(est_a_t, label='estimated err')
+    # plt.legend()
+    # plt.show()
+
+    # h_forecasts = hw_model.forecast(steps=12)
+    # plt.plot(total_ppl_series)
+    # plt.plot(np.arange(len(total_ppl_series),len(total_ppl_series)+ len(h_forecasts)), h_forecasts)
+    # plt.show()

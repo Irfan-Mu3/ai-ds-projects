@@ -6,7 +6,7 @@ from scipy.optimize import minimize, basinhopping, brute, least_squares
 
 from sarima_plus_plus import sampleSeasonalARIMA, calculateSeasonalARIMA_error, \
     calculateSeasonalARIMA_error_minimization_form_slow, \
-    full_form_squared, difference_series
+    SARIMA_error_squared, difference_series
 
 if __name__ == '__main__':
     p_poly = None
@@ -38,7 +38,7 @@ if __name__ == '__main__':
 
     w_t = difference_series(y_t, d_poly)
 
-    res = minimize(full_form_squared, x0=myx0,
+    res = minimize(SARIMA_error_squared, x0=myx0,
                    args=(w_t, p_poly, q_poly, [], q_symbols, 0, len(q_ARIMA_coeffs)),
                    method='Nelder-Mead', options={'maxiter': 5000, 'disp': True})
     print("estimated params (via minimize):", res.df)
