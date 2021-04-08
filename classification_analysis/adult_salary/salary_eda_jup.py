@@ -19,6 +19,8 @@ def data_preparation(datafile):
     unknown_mask = (df.T != '?').all()
     df = df[unknown_mask]
 
+    print(np.unique(df['Salary']))
+
     return df
 
 

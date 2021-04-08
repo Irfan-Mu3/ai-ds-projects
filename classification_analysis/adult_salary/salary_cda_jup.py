@@ -96,42 +96,75 @@ def plot_biplot_w_class(bi_df: pd.DataFrame, idx_class_true, class_labels, color
     plt.legend()
 
 
+def more_than_50k(x: pd.DataFrame):
+    boolean_mask_more_than = (x['Capital-gain'] > 7000) \
+                             | ((x['Capital-loss'] >= 1800) & (x['Education-num'] >= 12)) \
+                             | ((x['Relationship'].isin(['Wife', 'Husband'])) &
+                                (x['Occupation'].isin(['Prof-specialty', 'Exec-managerial'])))
+    boolean_mask_less_than = np.logical_not(boolean_mask_more_than.to_numpy())
+    binary_mask = boolean_mask_less_than.astype(int)
+
+    return binary_mask
+
+    # if x['Capital-gain'] > 7000:
+    #     return True
+    # elif x['Capital-loss'] >= 1800 and x['Education-num'] >= 12:
+    #     return True
+    # elif (x['Relationship'].isin(['Wife', 'Husband']) &
+    #       x['Occupation'].isin(['Prof-specialty', 'Exec-managerial'])):
+    #     return True
+    # else:
+    #     return False
+
+
 if __name__ == '__main__':
     # step: Start
     df = data_preparation('adult.csv')
+    df_test = data_preparation('adult.test')
 
     df_qual = df.select_dtypes(exclude=np.number)
     df_quant = df.select_dtypes(include=np.number)
     df_dummies = create_dummy_matrix(df_qual)
 
+    df_test_qual = df_test.select_dtypes(exclude=np.number)
+    df_test_quant = df_test.select_dtypes(include=np.number)
+    df_test_dummies = create_dummy_matrix(df_test_qual)
+
     # substep: change 'Salary' to dummy variable (less than 50K).
     y_variable = pd.get_dummies(df['Salary'], prefix='Salary', prefix_sep=': ')['Salary: <=50K']
+
+    y_test_variable = pd.get_dummies(df_test['Salary'], prefix='Salary', prefix_sep=': ')['Salary: <=50K']
 
     ###############################################################################################################
 
     # step: Decision Trees, forests, gradient boosting: Testing and training via cross-validate
 
-    # substep: quantative variables only
-    k_fold_cross_val(df_quant, y_variable, 10)
-    # Comments: The accuracy ranges from 75 to 85 percent, depending on the technique used.
-
-    # substep:  qualitative variables only
-    df_dummy_qual = create_dummy_matrix(df_qual.drop(columns=['Salary']), )
-    k_fold_cross_val(df_dummy_qual, y_variable, 10)
-
-    # substep: all variables
-    k_fold_cross_val(df_dummies.drop(columns=['Salary: <=50K']), y_variable, 10)
+    # # substep: quantative variables only
+    # k_fold_cross_val(df_quant, y_variable, 10)
+    # # Comments: The accuracy ranges from 75 to 85 percent, depending on the technique used.
+    #
+    # # substep:  qualitative variables only
+    # df_dummy_qual = create_dummy_matrix(df_qual.drop(columns=['Salary']), )
+    # k_fold_cross_val(df_dummy_qual, y_variable, 10)
+    #
+    # # substep: all variables
+    # k_fold_cross_val(df_dummies.drop(columns=['Salary: <=50K']), y_variable, 10)
 
     # substep: EDA variables
     df2 = df[['Capital-gain', 'Capital-loss', 'Education', 'Relationship', 'Occupation']]
     df2_dummies = create_dummy_matrix(df2, )
-    clf, clf_forest, clf_boost = k_fold_cross_val(df2_dummies, y_variable, 10)
+
+    df2_test = df_test[['Capital-gain', 'Capital-loss', 'Education', 'Relationship', 'Occupation']]
+    df2_tes_dummies = create_dummy_matrix(df2_test)
+
+    trees = [clf, clf_forest, clf_boost] = k_fold_cross_val(df2_dummies, y_variable, 4)
 
     fig, ax = plt.subplots(1)
-
     _ = tree.plot_tree(clf, feature_names=df2_dummies.columns, class_names=['> 50k', '<=50k'],
                        filled=True, proportion=False, ax=ax)
     plt.show()
+
+
 
     ##############################################################################################################
 
@@ -389,6 +422,40 @@ if __name__ == '__main__':
           f1_score(y_pred_pot, o_y_variable))
     print("Potential accuracy of (naive classifer + Capital-gain + Capital-loss + ...):",
           (num_less + outlyings - misclass + prev_total_outlyings - prev_total_misclass) / total_individuals)
+
+    ###################################################################################################################
+
+    # Test-set scores:
+
+    scores = [tree_i.score(df2_tes_dummies.to_numpy(), y_test_variable.to_numpy().ravel()) for tree_i in trees]
+    predicts = [tree_i.predict(df2_tes_dummies.to_numpy()) for tree_i in trees]
+    f1s = [f1_score(y_test_variable.to_numpy().ravel(), predicts[i], average='binary') for i in range(len(trees))]
+
+    print("Test scores:", scores)
+    print("F1s:", f1s)
+
+
+
+    df3 = df[['Capital-gain', 'Capital-loss', 'Education-num', 'Relationship', 'Occupation']]
+    predict_manual = more_than_50k(df3)
+    print("num >50k:",len(y_variable) - sum(predict_manual))
+    correct_preds = (predict_manual == y_variable.to_numpy().ravel())
+    num_correc = np.sum(correct_preds)
+    print("missclassed:", len(y_variable) - num_correc)
+
+    print("Accuracy score of manual classifier (train)", num_correc / len(y_variable))
+    print("F1 score of manual classifier (train):",
+          f1_score(y_variable.to_numpy().ravel(), predict_manual, average='binary'))
+
+    df3_test = df_test[['Capital-gain', 'Capital-loss', 'Education-num', 'Relationship', 'Occupation']]
+    predict_manual = more_than_50k(df3_test)
+    correct_preds = (predict_manual == y_test_variable.to_numpy().ravel())
+    num_correc = np.sum(correct_preds)
+    print("num_correct:", num_correc)
+
+    print("Accuracy score of manual classifier (test)", num_correc / len(y_test_variable))
+    print("F1 score of manual classifier (test):",
+          f1_score(y_test_variable.to_numpy().ravel(), predict_manual, average='binary'))
 
     # clust1_idx = (df_qual['Relationship'].isin(['Wife', 'Husband'])) & (
     #     df_qual['Occupation'].isin(['Prof-specialty', 'Exec-managerial', ]))
