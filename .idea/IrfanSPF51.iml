@@ -7,10 +7,13 @@
       <sourceFolder url="file://$MODULE_DIR$/regression_analysis" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/time_series_analysis" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/computer_vision" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/model_checking/tests" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/model_checking/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/venvpypy" />
       <excludeFolder url="file://$MODULE_DIR$/regression_analysis/venvpypy" />
       <excludeFolder url="file://$MODULE_DIR$/time_series_analysis/venvpypy" />
       <excludeFolder url="file://$MODULE_DIR$/computer_vision/corona_chest_x_ray/old" />
+      <excludeFolder url="file://$MODULE_DIR$/venv" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
