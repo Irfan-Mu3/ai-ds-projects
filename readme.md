@@ -1,15 +1,10 @@
-# Irfan's Science Portfolio
+## Data Science Projects
 
-## Welcome
-
-Here lies projects I have undertaken to learn and grow in data science. 
+Some projects I have undertaken to learn and grow in data science. 
 These projects mostly showcase how I would handle solving problems for particular datasets, 
 but may include self-written statistical software and plotting algorithms.
-I hope to accumulate here a display of foundational techniques in solving regression, classification,
-clustering and forecasting problems. Additionally, of data-wrangling, and database-querying, within the
-_python_ ecosystem.
 
-Here are some of the projects I have worked on:
+Current projects:
 1) House Price Dataset (Regression)
 2) San Francisco's Incident Report Dataset (Forecasting)
 3) Adult Salary Dataset (Classification)
